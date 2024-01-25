@@ -5,42 +5,80 @@ const CANVAS_HEIGHT = window.innerHeight;
 ctx.canvas.width = CANVAS_WIDTH;
 ctx.canvas.height = CANVAS_HEIGHT;
 
-ctx.fillStyle = "black";
+ctx.fillStyle = "white";
 ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 let x = 0;
 let y = 0;
-let directionX = 5;
-let directionY = 5;
-let prevTimestamp = 0;
+let directionX = 1;
+let directionY = 1;
+let prevTimestamp = 1000;
 let gameTime = 0;
 function Draw(timestamp) {
-    let delta = (timestamp - prevTimestamp);
-    prevTimestamp = timestamp;
 
-    gameTime += delta;
-
-    if (gameTime > 30) {
-        ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        ctx.fillStyle = "black";
-        ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    //ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
-        ctx.fillStyle = "green";
-        ctx.fillRect(x,y,100,100);
-        x += directionX;
-        y += directionY;
+    // if ((Rune.gameTime() / 1000) >= startDelay)
+    //     ctx.fillStyle = "green";
+    // else
+    //     ctx.fillStyle = "red";
+    // ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-        if (x < 0 || x > CANVAS_WIDTH - 100)
-            directionX *= -1;
 
-        if (y < 0 || y > CANVAS_HEIGHT - 100)
-            directionY *= -1;
 
-        gameTime = 0;
-    }
+    // requestAnimationFrame(Draw);
+}
+var playerID;
+// client.js
+Rune.initClient({
+    onChange: ({
+      game,
+      previousGame,
+      futureGame,
+      yourPlayerId,
+      players,
+      action,
+      event,
+      rollbacks,
+    }) => {
+      render(game)
+    },
+  });
 
-    requestAnimationFrame(Draw);
+var startDelay = 0;
+function render(game) {
+    
+    startDelay = game.delay;
+    Draw(0);
 }
 
-Draw(0);
+let isDrawing = false;
+canvas.addEventListener("mousedown", (event) => {
+    isDrawing = true;
+    drawLine(event);
+  });
+
+  canvas.addEventListener("mousemove", (event) => {
+    if (isDrawing) {
+        drawLine(event);
+    }
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    isDrawing = false;
+    ctx.beginPath();
+  });
+
+  function drawLine(event) {
+    const x = event.clientX - canvas.getBoundingClientRect().left;
+    const y = event.clientY - canvas.getBoundingClientRect().top;
+
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
