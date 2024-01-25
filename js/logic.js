@@ -10,7 +10,7 @@ function startedDrawing(triggered, { game, playerId, allPlayerIds }) {
 }
 
 function finishedDrawing({score, drawTime}, { game, playerId, allPlayerIds }) {
-  game.scores[playerId] = Math.max(1, ((score.Score * 100) - (drawTime / 100)));
+  game.scores[playerId] = Math.max(1, Math.floor((score.Score * 100) - (drawTime / 1000)));
   
   let otherPlayer = allPlayerIds.find((id) => id !== playerId);
 
