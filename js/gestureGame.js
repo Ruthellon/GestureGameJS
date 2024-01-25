@@ -1,59 +1,38 @@
-const canvas = document.getElementById("mainCanvas");
-const ctx = canvas.getContext("2d");
-const CANVAS_WIDTH = window.innerWidth;
-const CANVAS_HEIGHT = window.innerHeight;
-ctx.canvas.width = CANVAS_WIDTH;
-ctx.canvas.height = CANVAS_HEIGHT;
+const GAME_WIDTH = 320;
+const GAME_RENDERED_HEIGHT = 600;
 
-ctx.fillStyle = "white";
-ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
+const { canvas, context } = setupCanvas();
 
-let x = 0;
-let y = 0;
-let directionX = 1;
-let directionY = 1;
-let prevTimestamp = 1000;
-let gameTime = 0;
-function Draw(timestamp) {
+const recognizer = new DollarRecognizer();
 
-    //ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        
-    // if ((Rune.gameTime() / 1000) >= startDelay)
-    //     ctx.fillStyle = "green";
-    // else
-    //     ctx.fillStyle = "red";
-    // ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+let game;
+window.onload = function () {
+  let triggered = false;
+  let lastTimeStamp = 0;
+  let timeElapsed = 0;
+  let delay = 0;
+  document.body.appendChild(canvas);
 
+  Rune.initClient({
+    onChange: (params) => {
+      game = params.game;
 
-
-    // requestAnimationFrame(Draw);
-}
-var playerID;
-// client.js
-Rune.initClient({
-    onChange: ({
-      game,
-      previousGame,
-      futureGame,
-      yourPlayerId,
-      players,
-      action,
-      event,
-      rollbacks,
-    }) => {
-      render(game)
+      if (game.delay !== delay) {
+        delay = game.delay;
+        triggered = false;
+        timeElapsed = 0;
+      }
     },
   });
 
-var startDelay = 0;
-function render(game) {
-    
-    startDelay = game.delay;
-    Draw(0);
-}
+  var points = [];
 
-let isDrawing = false;
-canvas.addEventListener("mousedown", (event) => {
+  let isDrawing = false;
+
+  let startTime = 0;
+  canvas.addEventListener("mousedown", (event) => {
+    startTime = document.timeline.currentTime;
+    Rune.actions.startedDrawing(triggered);
     isDrawing = true;
     drawLine(event);
   });
@@ -63,22 +42,115 @@ canvas.addEventListener("mousedown", (event) => {
         drawLine(event);
     }
   });
-
+  
   canvas.addEventListener("mouseup", () => {
-    isDrawing = false;
-    ctx.beginPath();
+    if (isDrawing)
+      finishedDrawing();
+  });
+  
+  canvas.addEventListener("mouseleave", () => {
+    if (isDrawing)
+      finishedDrawing();
   });
 
-  function drawLine(event) {
-    const x = event.clientX - canvas.getBoundingClientRect().left;
-    const y = event.clientY - canvas.getBoundingClientRect().top;
+  function finishedDrawing() {
+    isDrawing = false;
+    context.beginPath();
+    let drawTime = document.timeline.currentTime - startTime;
+    let result = recognizer.Recognize(points, false);
+    if (result.Name !== recognizer.Unistrokes[game.drawing].Name){
+      result.Score = 0;
+    }
 
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#000";
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    Rune.actions.finishedDrawing({
+      score: result,
+      drawTime: drawTime
+    });
   }
+
+  function drawLine(event) {
+    const x = (event.clientX - canvas.getBoundingClientRect().left) / (window.innerWidth / GAME_WIDTH);
+    const y = (event.clientY - canvas.getBoundingClientRect().top) / (window.innerHeight / GAME_RENDERED_HEIGHT);
+
+    let point = new Point(x, y);
+    points.push(point);
+
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.strokeStyle = "#000";
+
+    context.lineTo(x, y);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(x, y);
+  }
+
+  function draw(timestamp) {
+    let deltaTime = timestamp - lastTimeStamp;
+    lastTimeStamp = timestamp;
+    timeElapsed += deltaTime;
+    if (game && triggered === false) {
+      context.fillStyle = "red";
+      context.fillRect(0,0, GAME_WIDTH, GAME_RENDERED_HEIGHT);
+
+      if ((timeElapsed / 1000) >= game.delay) {
+        triggered = true;
+        context.fillStyle = "green";
+        context.fillRect(0,0, GAME_WIDTH, GAME_RENDERED_HEIGHT);
+
+        context.strokeStyle = "rgba(206, 1, 132, 1)"
+        context.fillStyle = "rgba(206, 1, 132, 1)"
+
+        context.stroke()
+
+        context.font = "400 50px Poppins"
+        context.textAlign = "center"
+        context.fillText(recognizer.Unistrokes[game.drawing].Name, 100, 50)
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  draw(0);
+}
+
+function setupCanvas() {
+  const canvas = document.createElement("canvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const scaleX = window.innerWidth / GAME_WIDTH;
+  const scaleY = window.innerHeight / GAME_RENDERED_HEIGHT;
+
+  canvas.style.height = "100vh";
+  canvas.style.width = "100vw";
+  
+  const context = canvas.getContext("2d");
+
+  context.scale(scaleX, scaleY);
+
+  context.fillStyle = "red";
+  context.fillRect(0,0, GAME_WIDTH, GAME_RENDERED_HEIGHT);
+
+  return {
+    canvas,
+    context,
+  };
+}
+
+function fittingString(c, str,maxWidth) {
+  let width = c.measureText(str).width
+  const ellipsis = "…"
+  const ellipsisWidth = c.measureText(ellipsis).width
+  if (width <= maxWidth || width <= ellipsisWidth) {
+    return str
+  } else {
+    let len = str.length
+    while (width >= maxWidth - ellipsisWidth && len-- > 0) {
+      str = str.substring(0, len)
+      width = c.measureText(str).width
+    }
+    return str + ellipsis
+  }
+}
