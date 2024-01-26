@@ -149,14 +149,14 @@ function DollarRecognizer() // constructor
 	//
 	this.Recognize = function(points, useProtractor)
 	{
-		var t0 = Date.now();
-		var candidate = new Unistroke("", points);
+		let t0 = Date.now();
+		let candidate = new Unistroke("", points);
 
-		var u = -1;
-		var b = +Infinity;
-		for (var i = 0; i < this.Unistrokes.length; i++) // for each unistroke template
+		let u = -1;
+		let b = +Infinity;
+		for (let i = 0; i < this.Unistrokes.length; i++) // for each unistroke template
 		{
-			var d;
+			let d;
 			if (useProtractor)
 				d = OptimalCosineDistance(this.Unistrokes[i].Vector, candidate.Vector); // Protractor
 			else
@@ -166,8 +166,22 @@ function DollarRecognizer() // constructor
 				u = i; // unistroke index
 			}
 		}
-		var t1 = Date.now();
+		let t1 = Date.now();
 		return (u == -1) ? new Result("No match.", 0.0, t1-t0) : new Result(this.Unistrokes[u].Name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), t1-t0);
+	}
+	this.RecognizeShape = function(points, useProtractor, index)
+	{
+		let t0 = Date.now();
+		let candidate = new Unistroke("", points);
+
+		let d;
+		if (useProtractor)
+			d = OptimalCosineDistance(this.Unistrokes[index].Vector, candidate.Vector); // Protractor
+		else
+			d = DistanceAtBestAngle(candidate.Points, this.Unistrokes[index], -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $1)
+
+		let t1 = Date.now();
+		return new Result(this.Unistrokes[index].Name, useProtractor ? (1.0 - d) : (1.0 - d / HalfDiagonal), t1-t0);
 	}
 	this.AddGesture = function(name, points)
 	{

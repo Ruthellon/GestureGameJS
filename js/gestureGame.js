@@ -5,73 +5,90 @@ const { canvas, context } = setupCanvas();
 
 const recognizer = new DollarRecognizer();
 
-let game;
+var game;
+
+var Rune;
+var previousDelay = 0;
 window.onload = function () {
   let triggered = false;
   let lastTimeStamp = 0;
   let timeElapsed = 0;
-  let delay = 0;
   document.body.appendChild(canvas);
 
-  Rune.initClient({
-    onChange: (params) => {
-      game = params.game;
+  if (Rune) {
+    Rune.initClient({
+      onChange: (params) => {
+        game = params.game;
 
-      if (game.delay !== delay) {
-        delay = game.delay;
-        triggered = false;
-        timeElapsed = 0;
-      }
-    },
-  });
+        if (game.delay !== previousDelay) {
+          triggered = false;
+          timeElapsed = 0;
+        }
+
+        previousDelay = game.delay;
+      },
+    });
+  }
+  else {
+    game = newGame();
+  }
 
   var points = [];
 
   let isDrawing = false;
 
   let startTime = 0;
-  canvas.addEventListener("mousedown", (event) => {
+  window.addEventListener("pointerdown", (event) => {
     startTime = document.timeline.currentTime;
-    Rune.actions.startedDrawing(triggered);
+
+    if (Rune)
+      Rune.actions.startedDrawing(triggered);
+
     isDrawing = true;
     context.beginPath();
     drawLine(event);
   });
 
-  canvas.addEventListener("mousemove", (event) => {
+  window.addEventListener("pointermove", (event) => {
     if (isDrawing) {
         drawLine(event);
     }
   });
   
-  canvas.addEventListener("mouseup", () => {
+  window.addEventListener("pointerup", () => {
     if (isDrawing)
       finishedDrawing();
   });
-  
-  canvas.addEventListener("mouseleave", () => {
-    if (isDrawing)
-      finishedDrawing();
-  });
+
 
   function finishedDrawing() {
     isDrawing = false;
     context.beginPath();
     let drawTime = document.timeline.currentTime - startTime;
-    let result = recognizer.Recognize(points, false);
+    let result = recognizer.RecognizeShape(points, false, game.drawing);
     if (result.Name !== recognizer.Unistrokes[game.drawing].Name){
       result.Score = 0;
     }
 
-    Rune.actions.finishedDrawing({
-      score: result,
-      drawTime: drawTime
-    });
+    console.log(result.Name);
+    
+    if (Rune) {
+      Rune.actions.finishedDrawing({
+        score: result,
+        drawTime: drawTime
+      });
+    }
+    else {
+      alert(Math.floor((result.Score * 100) - (drawTime / 1000)));
+      game = newGame();
+      triggered = false;
+      timeElapsed = 0;
+    }
   }
 
   function drawLine(event) {
-    const x = (event.clientX - canvas.getBoundingClientRect().left) / (window.innerWidth / GAME_WIDTH);
-    const y = (event.clientY - canvas.getBoundingClientRect().top) / (window.innerHeight / GAME_RENDERED_HEIGHT);
+    const x = getX(event);
+    const y = getY(event);
 
     let point = new Point(x, y);
     points.push(point);
@@ -84,6 +101,14 @@ window.onload = function () {
     context.stroke();
     context.beginPath();
     context.moveTo(x, y);
+  }
+
+  function getX(event) {
+    return ((event.clientX || event.touches[0].clientX) - canvas.getBoundingClientRect().left) / (window.innerWidth / GAME_WIDTH);
+  }
+
+  function getY(event) {
+    return ((event.clientY || event.touches[0].clientY) - canvas.getBoundingClientRect().top) / (window.innerHeight / GAME_RENDERED_HEIGHT);
   }
 
   function draw(timestamp) {
@@ -137,6 +162,13 @@ window.onload = function () {
         });
     }
   draw(0);
+}
+
+function newGame() {
+  return {
+    delay: Math.random() * (4 - 1) + 1,
+    drawing: Math.floor(Math.random() * 16)
+  }
 }
 
 function setupCanvas() {

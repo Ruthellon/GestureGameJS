@@ -29,7 +29,7 @@ Rune.initLogic({
     minPlayers: 2,
     maxPlayers: 2,
     setup: (allPlayerIds) => {
-      const delay = Math.random() * (10 - 3) + 3;
+      const delay = Math.random() * (4 - 1) + 1;
       const drawing = Math.floor(Math.random() * 16);
       const scores = {}
       for (let playerId of allPlayerIds) {
