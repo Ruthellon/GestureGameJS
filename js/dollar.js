@@ -90,6 +90,7 @@ function Rectangle(x, y, width, height) // constructor
 function Unistroke(name, points) // constructor
 {
 	this.Name = name;
+	this.OriginalPoints = points;
 	this.Points = Resample(points, NumPoints);
 	var radians = IndicativeAngle(this.Points);
 	this.Points = RotateBy(this.Points, -radians);

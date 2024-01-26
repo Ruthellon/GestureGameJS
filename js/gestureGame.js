@@ -34,6 +34,7 @@ window.onload = function () {
     startTime = document.timeline.currentTime;
     Rune.actions.startedDrawing(triggered);
     isDrawing = true;
+    context.beginPath();
     drawLine(event);
   });
 
@@ -98,20 +99,43 @@ window.onload = function () {
         context.fillStyle = "green";
         context.fillRect(0,0, GAME_WIDTH, GAME_RENDERED_HEIGHT);
 
-        context.strokeStyle = "rgba(206, 1, 132, 1)"
-        context.fillStyle = "rgba(206, 1, 132, 1)"
+        context.strokeStyle = "rgba(206, 1, 132, 1)";
+        context.fillStyle = "rgba(206, 1, 132, 1)";
 
-        context.stroke()
+        context.stroke();
 
-        context.font = "400 50px Poppins"
-        context.textAlign = "center"
-        context.fillText(recognizer.Unistrokes[game.drawing].Name, 100, 50)
+        context.font = "400 50px Poppins";
+        context.textAlign = "center";
+        context.fillText(recognizer.Unistrokes[game.drawing].Name, 100, 50);
+
+        drawShape();
       }
     }
-
     requestAnimationFrame(draw);
   }
 
+    function drawShape() {
+        context.lineWidth = 3;
+        context.lineCap = "round";
+        context.strokeStyle = "#000";
+        recognizer.Unistrokes[game.drawing].OriginalPoints.forEach((point) => {
+
+            let x = point.X; //(point.X - canvas.getBoundingClientRect().left) / (window.innerWidth / GAME_WIDTH);
+            let y = point.Y; //(point.Y- canvas.getBoundingClientRect().top) / (window.innerHeight / GAME_RENDERED_HEIGHT);
+
+            //console.log(point.X + ', ' + point.Y)
+            //console.log(x + ', ' + y);
+
+            context.lineWidth = 3;
+            context.lineCap = "round";
+            context.strokeStyle = "#000";
+
+            context.lineTo(x, y);
+            context.stroke();
+            context.beginPath();
+            context.moveTo(x, y);
+        });
+    }
   draw(0);
 }
 
