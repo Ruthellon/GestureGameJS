@@ -39,6 +39,7 @@ window.onload = function () {
 
   let startTime = 0;
   window.addEventListener("pointerdown", (event) => {
+    points = [];
     startTime = document.timeline.currentTime;
 
     if (Rune)
